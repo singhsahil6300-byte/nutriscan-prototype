@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NutriScan - Responsive AI</title>
+    <style>
+        /* --- GLOBAL STYLES --- */
+        :root {
+            --primary: #1e3c72;
+            --secondary: #2a5298;
+            --accent: #00b09b;
+            --bg-grad: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            --card-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-grad);
+            margin: 0;
+            min-height: 100vh;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align top for scrolling */
+            padding: 20px;
+        }
+
+        /* --- RESPONSIVE CONTAINER --- */
+        .app-container {
+            background: white;
+            width: 100%;
+            max-width: 1200px; /* Limits width on big screens */
+            min-height: 80vh;
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- HEADER --- */
+        header {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            padding: 20px 40px;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: 1px; }
+        .logo p { margin: 0; font-size: 12px; opacity: 0.8; }
+
+        /* --- MAIN LAYOUT (DESKTOP GRID) --- */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* 2 Columns on Desktop */
+            gap: 40px;
+            padding: 40px;
+            flex-grow: 1;
+        }
+
+        /* LEFT COLUMN: Controls */
+        .controls-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Persona Tabs */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            background: #f0f2f5;
+            padding: 8px;
+            border-radius: 12px;
+        }
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 8px;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.2s;
+        }
+        .tab.active {
+            background: white;
+            color: var(--primary);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        /* Upload Zone */
+        .upload-zone {
+            flex-grow: 1;
+            border: 3px dashed #d1d9e6;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #fafbfc;
+            min-height: 300px;
+            position: relative;
+            overflow: hidden;
+        }
+        .upload-zone:hover { border-color: var(--primary); background: #f4f7fa; }
+        .upload-icon { font-size: 60px; color: var(--primary); margin-bottom: 15px; opacity: 0.6; }
+        #preview { width: 100%; height: 100%; object-fit: contain; position: absolute; display: none; padding: 20px; box-sizing: border-box; }
+
+        /* RIGHT COLUMN: Results */
+        .results-section {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* Loading State */
+        #loader { display: none; text-align: center; }
+        .spinner {
+            width: 60px; height: 60px; border: 6px solid #f3f3f3; 
+            border-top: 6px solid var(--primary); border-radius: 50%;
+            margin: 0 auto 20px; animation: spin 1s linear infinite;
+        }
+
+        /* Cards */
+        #result { display: none; animation: fadeIn 0.5s ease; }
+        .card {
+            border-radius: 20px;
+            padding: 30px;
+            color: white;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .card-header { display: flex; align-items: center; margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 15px; }
+        .card-icon { font-size: 40px; margin-right: 20px; background: rgba(255,255,255,0.2); width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+        .card-title { font-size: 28px; font-weight: 800; }
+
+        .info-row {
+            background: rgba(0,0,0,0.15);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            backdrop-filter: blur(5px);
+        }
+        .info-label { font-size: 12px; text-transform: uppercase; font-weight: 700; opacity: 0.8; display: block; margin-bottom: 8px; }
+        .info-text { font-size: 16px; line-height: 1.5; }
+
+        /* THEME COLORS */
+        .bg-safe { background: linear-gradient(135deg, #11998e, #38ef7d); }
+        .bg-danger { background: linear-gradient(135deg, #ff416c, #ff4b2b); }
+        .bg-warn { background: linear-gradient(135deg, #f7971e, #ffd200); color: #222; }
+
+        /* --- MOBILE RESPONSIVENESS (< 768px) --- */
+        @media (max-width: 768px) {
+            body { padding: 0; background: white; }
+            .app-container {
+                border-radius: 0;
+                box-shadow: none;
+                width: 100%;
+                min-height: 100vh;
+            }
+            .main-content {
+                grid-template-columns: 1fr; /* Stack vertically */
+                gap: 20px;
+                padding: 20px;
+            }
+            .upload-zone { min-height: 200px; }
+            header { padding: 15px 20px; }
+            .logo h1 { font-size: 20px; }
+            .card-title { font-size: 22px; }
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <h1>NutriScan AI</h1>
+                <p>Intelligent Food Safety Assistant</p>
+            </div>
+            <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">👤</div>
+        </header>
+
+        <div class="main-content">
+            <div class="controls-section">
+                <div class="tabs">
+                    <div class="tab active" onclick="setPersona('allergy', this)">⚠️ Nut Allergy</div>
+                    <div class="tab" onclick="setPersona('vegan', this)">🌱 Vegan</div>
+                    <div class="tab" onclick="setPersona('gluten', this)">🍞 Gluten Free</div>
+                </div>
+
+                <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+                    <input type="file" id="fileInput" accept="image/*" onchange="handleFile(event)" style="display: none;">
+                    <div id="upload-placeholder" style="text-align: center;">
+                        <div class="upload-icon">☁️</div>
+                        <h3 style="margin:0; color:#444;">Click to Upload Product</h3>
+                        <p style="margin:5px 0 0; color:#888; font-size:14px;">Supports JPG, PNG (Simulated)</p>
+                    </div>
+                    <img id="preview" src="" alt="Product Preview">
+                </div>
+            </div>
+
+            <div class="results-section">
+                <div id="loader">
+                    <div class="spinner"></div>
+                    <h2>Analyzing Ingredients...</h2>
+                    <p style="color:#666;">Checking against your health profile</p>
+                </div>
+
+                <div id="result">
+                    <div class="card bg-safe" id="result-card-bg"> 
+                        <div class="card-header">
+                            <div class="card-icon" id="res-icon">👋</div>
+                            <div class="card-title" id="res-title">Ready to Scan</div>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Instructions</span>
+                            <div class="info-text" id="res-text">Upload a product image (e.g., Lays, Snickers) to see if it's safe for you.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. THE DATABASE (Expanded Version) ---
+        const productDatabase = {
+            // 1. LAYS
+            'lays': {
+                allergy: { status: "SAFE", theme: "bg-safe", icon: "✅", title: "Safe to Eat", text: "No nuts detected. Ingredients: Potato, Oil, Salt. Safe for nut allergies." },
+                vegan: { status: "SAFE", theme: "bg-safe", icon: "🌱", title: "Vegan Friendly", text: "Contains no animal products. Purely plant-based ingredients." },
+                gluten: { status: "SAFE", theme: "bg-safe", icon: "🌾", title: "Gluten Free", text: "Potatoes are naturally gluten-free. No wheat ingredients found." }
+            },
+            
+            // 2. SNICKERS
+            'snickers': {
+                allergy: { status: "DANGER", theme: "bg-danger", icon: "⛔", title: "Do Not Eat", text: "<strong>Critical Warning:</strong> Peanuts listed as 2nd ingredient. High risk of anaphylaxis." },
+                vegan: { status: "AVOID", theme: "bg-danger", icon: "🥛", title: "Contains Dairy", text: "Contains Milk Chocolate, Skim Milk, Lactose, and Egg Whites. Not Vegan." },
+                gluten: { status: "SAFE", theme: "bg-safe", icon: "✅", title: "No Gluten Ingredients", text: "No wheat listed, but check for cross-contamination if very sensitive." }
+            },
+            
+            // 3. OREO
+            'oreo': {
+                allergy: { status: "WARNING", theme: "bg-warn", icon: "⚠️", title: "Check Label", text: "No nuts in ingredients, but often made in shared facilities. Proceed with caution." },
+                vegan: { status: "SAFE", theme: "bg-safe", icon: "🌱", title: "Accidentally Vegan", text: "Oreos do not contain milk or eggs in the standard recipe." },
+                gluten: { status: "DANGER", theme: "bg-danger", icon: "🍞", title: "Contains Wheat", text: "Main ingredient is Wheat Flour. Strictly avoid." }
+            },
+
+            // 4. KITKAT
+            'kitkat': {
+                allergy: { status: "SAFE", theme: "bg-safe", icon: "✅", title: "Nut Free", text: "Standard bars are nut-free, but always check for 'May Contain' warnings." },
+                vegan: { status: "AVOID", theme: "bg-danger", icon: "🥛", title: "Not Vegan", text: "Milk chocolate contains Cow's Milk and Milk Fat." },
+                gluten: { status: "DANGER", theme: "bg-danger", icon: "🍞", title: "Contains Gluten", text: "The wafer inside is made of Wheat Flour. Do not consume." }
+            },
+
+            // 5. COKE
+            'coke': {
+                allergy: { status: "SAFE", theme: "bg-safe", icon: "✅", title: "Allergen Free", text: "Contains Carbonated Water, Sugar, Color (150d), Acid (338)." },
+                vegan: { status: "SAFE", theme: "bg-safe", icon: "🌱", title: "Vegan", text: "No animal derivatives are used in Coca-Cola." },
+                gluten: { status: "SAFE", theme: "bg-safe", icon: "✅", title: "Gluten Free", text: "Caramel color is usually derived from corn or sugar, not wheat." }
+            },
+
+            // 6. MAGGI
+            'maggi': {
+                allergy: { status: "SAFE", theme: "bg-safe", icon: "✅", title: "Nut Free", text: "Peanuts are not a standard ingredient in the masala tastemaker." },
+                vegan: { status: "WARNING", theme: "bg-warn", icon: "⚠️", title: "Check Packet", text: "Some flavor variants contain milk solids. Classic Masala is often vegan but check the green dot." },
+                gluten: { status: "DANGER", theme: "bg-danger", icon: "🍞", title: "Wheat Based", text: "The noodles are made of Refined Wheat Flour (Maida). Not safe for Celiacs." }
+            },
+
+            // 7. DORITOS
+            'doritos': {
+                allergy: { status: "SAFE", theme: "bg-safe", icon: "✅", title: "Nut Free", text: "Corn and Vegetable oil base. No nuts detected." },
+                vegan: { status: "AVOID", theme: "bg-danger", icon: "🧀", title: "Contains Cheese", text: "Nacho Cheese flavor contains Cheese Solids, Whey, and Buttermilk." },
+                gluten: { status: "WARNING", theme: "bg-warn", icon: "⚠️", title: "May Contain Gluten", text: "Corn is safe, but seasoning often contains wheat maltodextrin. High cross-contamination risk." }
+            },
+
+            // 8. ALMOND MILK
+            'almondmilk': {
+                allergy: { status: "DANGER", theme: "bg-danger", icon: "☠️", title: "CONTAINS NUTS", text: "Primary ingredient is Almonds (Tree Nuts). Do not consume." },
+                vegan: { status: "SAFE", theme: "bg-safe", icon: "🌱", title: "Perfect Choice", text: "100% Plant-based dairy alternative." },
+                gluten: { status: "SAFE", theme: "bg-safe", icon: "✅", title: "Gluten Free", text: "Naturally gluten-free." }
+            }
+        };
+
+        let currentPersona = 'allergy';
+        let detectedProduct = null;
+
+        function setPersona(persona, el) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            currentPersona = persona;
+            if (detectedProduct) showResult(detectedProduct);
+        }
+
+        function handleFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = document.getElementById('preview');
+                img.src = e.target.result;
+                img.style.display = 'block';
+                document.getElementById('upload-placeholder').style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+
+            // Simulate AI Detection from Filename
+            const filename = file.name.toLowerCase();
+            identifyProduct(filename);
+        }
+
+        function identifyProduct(filename) {
+            // Check database keys
+            detectedProduct = Object.keys(productDatabase).find(key => filename.includes(key));
+            
+            // UI Transition
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('loader').style.display = 'block';
+
+            setTimeout(() => {
+                document.getElementById('loader').style.display = 'none';
+                if (detectedProduct) {
+                    showResult(detectedProduct);
+                } else {
+                    showUnknownError();
+                }
+            }, 1500);
+        }
+
+        function showResult(productKey) {
+            const data = productDatabase[productKey][currentPersona];
+            const cardBg = document.getElementById('result-card-bg');
+            
+            // Update Card Content
+            document.getElementById('res-icon').innerHTML = data.icon;
+            document.getElementById('res-title').innerHTML = data.title;
+            document.getElementById('res-text').innerHTML = data.text;
+            
+            // Remove old classes and add new theme
+            cardBg.className = `card ${data.theme}`;
+            document.getElementById('result').style.display = 'block';
+        }
+
+        function showUnknownError() {
+            const cardBg = document.getElementById('result-card-bg');
+            cardBg.className = "card bg-warn";
+            document.getElementById('res-icon').innerHTML = "❓";
+            document.getElementById('res-title').innerHTML = "Unknown Product";
+            document.getElementById('res-text').innerHTML = "I couldn't identify this product from the filename. Please rename your file to 'lays.jpg' or 'snickers.jpg' for this demo.";
+            document.getElementById('result').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
